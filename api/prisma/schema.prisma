@@ -1,0 +1,78 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id              String   @id @default(uuid()) @db.Uuid
+  name            String   @map("name") @db.VarChar(255)
+  email           String   @unique @map("email") @db.VarChar(255)
+  registrationDate DateTime @default(now()) @map("registration_date") @db.Timestamp
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamp
+  updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamp
+
+  @@map("users")
+  @@index([email])
+  @@index([registrationDate])
+}
+
+model AuditLog {
+  id         String   @id @default(uuid()) @db.Uuid
+  entityType String   @map("entity_type") @db.VarChar(100)
+  entityId   String   @map("entity_id") @db.Uuid
+  action     String   @map("action") @db.VarChar(50)
+  oldData    Json?    @map("old_data")
+  newData    Json?    @map("new_data")
+  performedBy String?  @map("performed_by") @db.Uuid
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamp
+
+  @@map("audit_logs")
+  @@index([entityType, entityId])
+  @@index([createdAt])
+}
+
+model UserSession {
+  id           String   @id @default(uuid()) @db.Uuid
+  userId       String   @map("user_id") @db.Uuid
+  token        String   @unique @map("token") @db.Text
+  expiresAt    DateTime @map("expires_at") @db.Timestamp
+  ipAddress    String?  @map("ip_address") @db.Inet
+  userAgent    String?  @map("user_agent") @db.Text
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamp
+  revokedAt    DateTime? @map("revoked_at") @db.Timestamp
+
+  @@map("user_sessions")
+  @@index([userId])
+  @@index([expiresAt])
+  @@foreignKey([userId]) references [User](id) onDelete Cascade
+}
+
+enum UserRole {
+  ADMIN
+  CUSTOMER
+  GUEST
+}
+
+model UserProfile {
+  id          String   @id @default(uuid()) @db.Uuid
+  userId      String   @unique @map("user_id") @db.Uuid
+  bio         String?  @db.Text
+  phoneNumber String?  @map("phone_number") @db.VarChar(20)
+  address     String?  @db.VarChar(500)
+  city        String?  @db.VarChar(100)
+  country     String?  @db.VarChar(100)
+  postalCode  String?  @map("postal_code") @db.VarChar(20)
+  avatarUrl   String?  @map("avatar_url") @db.Text
+  preferences Json?    @db.JsonB
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamp
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamp
+
+  @@map("user_profiles")
+  @@index([userId])
+  @@foreignKey([userId]) references [User](id) onDelete Cascade
+}
